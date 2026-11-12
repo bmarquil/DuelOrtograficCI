@@ -20,11 +20,7 @@ Aplicació web educativa interactiva dissenyada per practicar per parelles (**1 
 ## 🌐 Com utilitzar l'aplicació amb GitHub Pages
 
 Aquesta aplicació està desenvolupada en un **únic fitxer HTML autocontingut** (sense frameworks ni dependències externes), la qual cosa permet executar-la directament des de **GitHub Pages** sense cap instal·lació:
-
-1. Puja els fitxers al teu repositori de GitHub (assegura't que el fitxer principal es digui `index.html` o accedeix-hi pel seu nom de fitxer).
-2. Ves a **Settings** (Configuració) del repositori > **Pages** (al menú lateral esquerre).
-3. A l'apartat **Build and deployment > Branch**, selecciona la branca `main` (carpeta `/root`) i fes clic a **Save**.
-4. Al cap d'uns segons, GitHub publicarà l'enllaç públic (ex. `https://bmarquil.github.io/nom-del-repositori/`) llest per obrir-lo des de qualsevol navegador o pissarra digital de l'aula.
+https://bmarquil.github.io/DuelOrtograficCI/
 
 > 💡 **Ús fora de línia (Offline):** També pots descarregar el fitxer `.html` i obrir-lo directament fent doble clic en qualsevol navegador, fins i tot sense connexió a Internet.
 
