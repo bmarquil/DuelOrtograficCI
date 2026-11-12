@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Duel Ortogràfic 1vs1 - Català</title>
+    <style>
+        /* ==========================================================================
+           VARIABLES I RESET TOUCH-FIRST
+           ========================================================================== */
+        :root {
+            --bg-main: #f1f5f9;
+            --surface: #ffffff;
+            --text-dark: #0f172a;
+            --text-muted: #475569;
+            
+            /* Colors Jugadors */
+            --p1-primary: #2563eb;
+            --p1-light: #dbeafe;
+            --p1-dark: #1e40af;
+            
+            --p2-primary: #e11d48;
+            --p2-light: #ffe4e6;
+            --p2-dark: #9f1239;
+
+            /* Estats */
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --error: #dc2626;
+            --error-bg: #fee2e2;
+            --accent: #f59e0b;
+
+            /* Dimensions i radis */
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            --shadow-btn: 0 6px 0 rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            /* Bloqueig de selecció i comportaments tàctils no desitjats */
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: manipulation; /* Evita el zoom per doble toc */
+        }
+
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden; /* NO-SCROLL obligatori */
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+        }
+
+        /* ==========================================================================
+           CONTROLS GLOBALS FLOTANTS (TOP BAR)
+           ========================================================================== */
+        .global-controls {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 1000;
+            display: flex;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            width: 64px;
+            height: 64px;
+            border-radius: var(--radius-md);
+            border: 3px solid #cbd5e1;
+            background: var(--surface);
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+            transition: transform 0.1s ease, background-color 0.15s ease;
+        }
+
+        .icon-btn:active {
+            transform: scale(0.92);
+            background-color: #e2e8f0;
+        }
+
+        .icon-btn svg {
+            width: 32px;
+            height: 32px;
+            stroke-width: 2.5;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* ==========================================================================
+           PANTALLA 1: CONFIGURACIÓ DEL MESTRE
+           ========================================================================== */
+        #setup-screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            gap: 28px;
+        }
+
+        .app-title {
+            font-size: clamp(2.2rem, 4.5vw, 3.5rem);
+            font-weight: 900;
+            text-align: center;
+            color: var(--text-dark);
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+
+        .app-title span {
+            color: var(--p1-primary);
+        }
+
+        .setup-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 28px 36px;
+            width: 100%;
+            max-width: 900px;
+            box-shadow: var(--shadow-card);
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .setup-section {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .setup-label {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 16px;
+        }
+
+        .select-pill {
+            min-height: 76px;
+            padding: 16px;
+            border-radius: var(--radius-md);
+            border: 3px solid #cbd5e1;
+            background: #f8fafc;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transition: all 0.12s ease;
+        }
+
+        .select-pill:active {
+            transform: scale(0.95);
+        }
+
+        .select-pill.active {
+            background: var(--p1-primary);
+            border-color: var(--p1-dark);
+            color: white;
+            box-shadow: 0 6px 0 var(--p1-dark);
+            transform: translateY(-2px);
+        }
+
+        .start-btn {
+            min-height: 88px;
+            width: 100%;
+            max-width: 900px;
+            border-radius: var(--radius-lg);
+            border: none;
+            background: var(--success);
+            color: white;
+            font-size: 2.2rem;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 8px 0 #15803d;
+            transition: transform 0.1s ease, filter 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .start-btn:active {
+            transform: translateY(4px) scale(0.98);
+            box-shadow: 0 4px 0 #15803d;
+        }
+
+        /* ==========================================================================
+           PANTALLA 2: ARENA DE JOC 1 VS 1 (SPLIT SCREEN)
+           ========================================================================== */
+        #game-screen {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            position: relative;
+        }
+
+        /* Línia divisòria central */
+        #game-screen::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 6px;
+            background: #cbd5e1;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        .player-zone {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px 24px 28px 24px;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+
+        .player-1 {
+            background-color: #eff6ff;
+        }
+
+        .player-2 {
+            background-color: #fff1f2;
+            padding-top: 90px; /* Espai per als controls globals a dalt a la dreta */
+        }
+
+        /* Capçalera de cada jugador */
+        .player-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface);
+            padding: 14px 22px;
+            border-radius: var(--radius-md);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+        }
+
+        .player-1 .player-header {
+            margin-top: 70px; /* Alineació visual equilibrada amb J2 */
+            border-left: 10px solid var(--p1-primary);
+        }
+
+        .player-2 .player-header {
+            border-left: 10px solid var(--p2-primary);
+        }
+
+        .player-name {
+            font-size: 1.6rem;
+            font-weight: 900;
+        }
+
+        .player-1 .player-name { color: var(--p1-primary); }
+        .player-2 .player-name { color: var(--p2-primary); }
+
+        .player-stats {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.35rem;
+            font-weight: 800;
+        }
+
+        .timer-badge {
+            background: #fef3c7;
+            color: #b45309;
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-variant-numeric: tabular-nums;
+            border: 2px solid #fde68a;
+        }
+
+        .score-badge {
+            background: #f1f5f9;
+            padding: 6px 16px;
+            border-radius: 12px;
+            color: var(--text-dark);
+        }
+
+        /* ==========================================================================
+           BARRA DE PROGRÉS EN FORMA DE COET QUE DESPEGA
+           ========================================================================== */
+        .play-area-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: stretch;
+            gap: 16px;
+            margin: 14px 0;
+            min-height: 0;
+        }
+
+        .rocket-track-container {
+            width: 58px;
+            background: linear-gradient(to top, #e2e8f0 0%, #bae6fd 55%, #1e1b4b 100%);
+            border-radius: 99px;
+            padding: 14px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            border: 3px solid #cbd5e1;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.12);
+            flex-shrink: 0;
+        }
+
+        .rocket-goal-icon {
+            font-size: 1.5rem;
+            z-index: 2;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+
+        .rocket-track-rail {
+            position: relative;
+            width: 8px;
+            flex: 1;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.35);
+            border-radius: 99px;
+        }
+
+        .rocket-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0%;
+            border-radius: 99px;
+            transition: height 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .player-1 .rocket-fill {
+            background: linear-gradient(to top, #f97316, var(--p1-primary));
+        }
+
+        .player-2 .rocket-fill {
+            background: linear-gradient(to top, #f97316, var(--p2-primary));
+        }
+
+        .rocket-ship {
+            position: absolute;
+            left: 50%;
+            bottom: 0%;
+            transform: translate(-50%, 50%);
+            font-size: 2.3rem;
+            line-height: 1;
+            transition: bottom 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.35));
+            z-index: 3;
+        }
+
+        .rocket-ship.launching {
+            animation: rocketShake 0.4s ease;
+        }
+
+        .rocket-pad-icon {
+            font-size: 1.2rem;
+            z-index: 2;
+            opacity: 0.85;
+        }
+
+        @keyframes rocketShake {
+            0%, 100% { transform: translate(-50%, 50%) rotate(0deg) scale(1); }
+            25% { transform: translate(-54%, 50%) rotate(-8deg) scale(1.15); }
+            75% { transform: translate(-46%, 50%) rotate(8deg) scale(1.15); }
+        }
+
+        /* Targeta central de la paraula */
+        .word-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 24px;
+            position: relative;
+            border: 4px solid transparent;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .word-stage.flash-correct {
+            border-color: var(--success);
+            background-color: var(--success-bg);
+            animation: popSuccess 0.35s ease;
+        }
+
+        .word-stage.flash-wrong {
+            border-color: var(--error);
+            background-color: var(--error-bg);
+            animation: shakeError 0.4s ease;
+        }
+
+        .word-display {
+            font-size: clamp(2.6rem, 4.5vw, 4.5rem);
+            font-weight: 900;
+            letter-spacing: 0.03em;
+            color: var(--text-dark);
+            text-align: center;
+            word-break: break-word;
+        }
+
+        .blank-slot {
+            display: inline-block;
+            min-width: 1.4em;
+            padding: 0 10px;
+            margin: 0 4px;
+            border-bottom: 6px solid var(--accent);
+            color: var(--accent);
+            background: #fef3c7;
+            border-radius: 10px;
+            line-height: 1.1;
+        }
+
+        .word-stage.flash-correct .blank-slot {
+            border-color: var(--success);
+            color: var(--success);
+            background: #bbf7d0;
+        }
+
+        .hint-pill {
+            margin-top: 16px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            background: #f8fafc;
+            padding: 8px 18px;
+            border-radius: 99px;
+            border: 2px solid #e2e8f0;
+        }
+
+        /* Botonera d'opcions sota la paraula */
+        .choices-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .choice-btn {
+            min-height: 115px;
+            border-radius: var(--radius-lg);
+            border: none;
+            font-size: clamp(2.4rem, 3.8vw, 3.6rem);
+            font-weight: 900;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .player-1 .choice-btn {
+            background: var(--p1-primary);
+            box-shadow: 0 8px 0 var(--p1-dark);
+        }
+
+        .player-2 .choice-btn {
+            background: var(--p2-primary);
+            box-shadow: 0 8px 0 var(--p2-dark);
+        }
+
+        .choice-btn:active:not(:disabled) {
+            transform: translateY(6px) scale(0.96);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+        }
+
+        .choice-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Estat d'espera quan un jugador acaba abans que l'altre */
+        .waiting-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            z-index: 20;
+            text-align: center;
+            padding: 24px;
+        }
+
+        .waiting-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--success);
+        }
+
+        .waiting-sub {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        /* ==========================================================================
+           PANTALLA 3: RESULTATS FINALS
+           ========================================================================== */
+        #results-screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            gap: 28px;
+            background: var(--bg-main);
+        }
+
+        .winner-banner {
+            font-size: clamp(2.4rem, 5vw, 4rem);
+            font-weight: 900;
+            text-align: center;
+            color: var(--text-dark);
+            background: #fef3c7;
+            border: 4px solid var(--accent);
+            padding: 20px 44px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+        }
+
+        .podium-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .podium-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            text-align: center;
+            box-shadow: var(--shadow-card);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border-top: 12px solid #cbd5e1;
+        }
+
+        .podium-card.p1 { border-top-color: var(--p1-primary); }
+        .podium-card.p2 { border-top-color: var(--p2-primary); }
+
+        .podium-player {
+            font-size: 1.8rem;
+            font-weight: 900;
+        }
+
+        .podium-score {
+            font-size: 4rem;
+            font-weight: 900;
+            line-height: 1;
+            margin: 8px 0;
+        }
+
+        .podium-detail {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        .podium-time {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #b45309;
+            background: #fef3c7;
+            padding: 6px 16px;
+            border-radius: 99px;
+            align-self: center;
+            margin-top: 4px;
+        }
+
+        .app-footer-credit {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.85);
+            padding: 4px 14px;
+            border-radius: 99px;
+            border: 1px solid #cbd5e1;
+            z-index: 900;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        /* Animacions */
+        @keyframes popSuccess {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.04); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shakeError {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-12px); }
+            50% { transform: translateX(12px); }
+            75% { transform: translateX(-8px); }
+        }
+
+        /* Adaptació per a pantalles més estretes / mode vertical si escau */
+        @media (max-width: 820px) {
+            #game-screen {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr;
+            }
+            #game-screen::after {
+                top: 50%;
+                left: 0;
+                right: 0;
+                bottom: auto;
+                width: 100%;
+                height: 6px;
+                transform: translateY(-50%);
+            }
+            .player-1 .player-header { margin-top: 0; }
+            .player-2 { padding-top: 16px; }
+            .player-zone { padding: 12px 16px; }
+            .choice-btn { min-height: 76px; }
+            .play-area-wrapper { margin: 8px 0; }
+            .word-stage { padding: 12px; }
+            .rocket-track-container { width: 46px; padding: 8px 0; }
+            .rocket-ship { font-size: 1.8rem; }
+            .hint-pill { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- CONTROLS GLOBALS (SEMPRE ACCESSIBLES) -->
+    <div class="global-controls">
+        <button id="btn-home" class="icon-btn hidden" title="Tornar a l'inici" aria-label="Tornar a l'inici">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+        </button>
+
+        <button id="btn-sound" class="icon-btn" title="Activar o silenciar so" aria-label="So">
+            <!-- Icona So Activat -->
+            <svg id="icon-sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+            <!-- Icona So Silenciat -->
+            <svg id="icon-sound-off" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <line x1="23" y1="9" x2="17" y2="15"></line>
+                <line x1="17" y1="9" x2="23" y2="15"></line>
+            </svg>
+        </button>
+
+        <button id="btn-fullscreen" class="icon-btn" title="Pantalla completa" aria-label="Pantalla completa">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- ======================================================================
+         PANTALLA 1: CONFIGURACIÓ DEL MESTRE
+         ====================================================================== -->
+    <main id="setup-screen">
+        <h1 class="app-title">Duel Ortogràfic <span>1 vs 1</span></h1>
+
+        <div class="setup-card">
+            <!-- Selecció de temàtica -->
+            <div class="setup-section">
+                <div class="setup-label">1. Tria la norma ortogràfica</div>
+                <div class="options-grid" id="topic-options">
+                    <button class="select-pill active" data-topic="r_rr">R / RR</button>
+                    <button class="select-pill" data-topic="b_v">B / V</button>
+                    <button class="select-pill" data-topic="c_qu">C / QU</button>
+                    <button class="select-pill" data-topic="totes">Tot barrejat</button>
+                </div>
+            </div>
+
+            <!-- Selecció de nombre de paraules -->
+            <div class="setup-section">
+                <div class="setup-label">2. Nombre de paraules per jugador</div>
+                <div class="options-grid" id="count-options">
+                    <button class="select-pill" data-count="5">5 paraules</button>
+                    <button class="select-pill active" data-count="10">10 paraules</button>
+                    <button class="select-pill" data-count="15">15 paraules</button>
+                </div>
+            </div>
+        </div>
+
+        <button id="btn-start" class="start-btn">
+            <span>COMENÇAR PARTIDA</span>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+        </button>
+    </main>
+
+    <!-- ======================================================================
+         PANTALLA 2: JOC 1 VS 1 SIMULTANI
+         ====================================================================== -->
+    <section id="game-screen" class="hidden">
+        <!-- ZONA JUGADOR 1 (ESQUERRA) -->
+        <div class="player-zone player-1" id="zone-p1">
+            <div class="player-header">
+                <span class="player-name">JUGADOR 1</span>
+                <div class="player-stats">
+                    <span class="timer-badge" id="p1-timer">00:00.0</span>
+                    <span class="progress-text" id="p1-progress">1 / 10</span>
+                    <span class="score-badge" id="p1-score">0 pts</span>
+                </div>
+            </div>
+
+            <div class="play-area-wrapper">
+                <!-- Barra de progrés en forma de coet -->
+                <div class="rocket-track-container" aria-label="Progrés del coet Jugador 1">
+                    <div class="rocket-goal-icon">🪐</div>
+                    <div class="rocket-track-rail">
+                        <div class="rocket-fill" id="p1-rocket-fill"></div>
+                        <div class="rocket-ship" id="p1-rocket-ship">🚀</div>
+                    </div>
+                    <div class="rocket-pad-icon">🔥</div>
+                </div>
+
+                <div class="word-stage" id="p1-stage">
+                    <div class="word-display" id="p1-word">ca<span class="blank-slot">?</span>o</div>
+                    <div class="hint-pill" id="p1-hint">Vehicle de quatre rodes</div>
+                </div>
+            </div>
+
+            <div class="choices-container" id="p1-choices">
+                <button class="choice-btn" data-player="1" data-idx="0">r</button>
+                <button class="choice-btn" data-player="1" data-idx="1">rr</button>
+            </div>
+
+            <!-- Pantalla d'espera quan J1 acaba primer -->
+            <div class="waiting-overlay hidden" id="p1-waiting">
+                <div class="waiting-title">Has acabat! 🚀</div>
+                <div class="waiting-sub" id="p1-wait-score">Puntuació: 0 pts</div>
+                <div class="waiting-sub" id="p1-wait-time">Temps: 00:00.0</div>
+                <div class="waiting-sub">Esperant el Jugador 2...</div>
+            </div>
+        </div>
+
+        <!-- ZONA JUGADOR 2 (DRETA) -->
+        <div class="player-zone player-2" id="zone-p2">
+            <div class="player-header">
+                <span class="player-name">JUGADOR 2</span>
+                <div class="player-stats">
+                    <span class="timer-badge" id="p2-timer">00:00.0</span>
+                    <span class="progress-text" id="p2-progress">1 / 10</span>
+                    <span class="score-badge" id="p2-score">0 pts</span>
+                </div>
+            </div>
+
+            <div class="play-area-wrapper">
+                <div class="word-stage" id="p2-stage">
+                    <div class="word-display" id="p2-word">ca<span class="blank-slot">?</span>o</div>
+                    <div class="hint-pill" id="p2-hint">Vehicle de quatre rodes</div>
+                </div>
+
+                <!-- Barra de progrés en forma de coet -->
+                <div class="rocket-track-container" aria-label="Progrés del coet Jugador 2">
+                    <div class="rocket-goal-icon">🪐</div>
+                    <div class="rocket-track-rail">
+                        <div class="rocket-fill" id="p2-rocket-fill"></div>
+                        <div class="rocket-ship" id="p2-rocket-ship">🚀</div>
+                    </div>
+                    <div class="rocket-pad-icon">🔥</div>
+                </div>
+            </div>
+
+            <div class="choices-container" id="p2-choices">
+                <button class="choice-btn" data-player="2" data-idx="0">r</button>
+                <button class="choice-btn" data-player="2" data-idx="1">rr</button>
+            </div>
+
+            <!-- Pantalla d'espera quan J2 acaba primer -->
+            <div class="waiting-overlay hidden" id="p2-waiting">
+                <div class="waiting-title">Has acabat! 🚀</div>
+                <div class="waiting-sub" id="p2-wait-score">Puntuació: 0 pts</div>
+                <div class="waiting-sub" id="p2-wait-time">Temps: 00:00.0</div>
+                <div class="waiting-sub">Esperant el Jugador 1...</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================================
+         PANTALLA 3: RESULTATS FINALS
+         ====================================================================== -->
+    <section id="results-screen" class="hidden">
+        <div class="winner-banner" id="winner-text">Guanya el Jugador 1!</div>
+
+        <div class="podium-grid">
+            <div class="podium-card p1">
+                <div class="podium-player" style="color: var(--p1-primary);">JUGADOR 1</div>
+                <div class="podium-score" id="final-p1-score">0</div>
+                <div class="podium-detail" id="final-p1-detail">0 de 10 encerts</div>
+                <div class="podium-time" id="final-p1-time">⏱️ Temps: 00:00.0</div>
+            </div>
+
+            <div class="podium-card p2">
+                <div class="podium-player" style="color: var(--p2-primary);">JUGADOR 2</div>
+                <div class="podium-score" id="final-p2-score">0</div>
+                <div class="podium-detail" id="final-p2-detail">0 de 10 encerts</div>
+                <div class="podium-time" id="final-p2-time">⏱️ Temps: 00:00.0</div>
+            </div>
+        </div>
+
+        <button id="btn-play-again" class="start-btn">
+            <span>TORNAR A JUGAR</span>
+        </button>
+    </section>
+
+    <!-- CRÈDIT PERMANENT -->
+    <footer class="app-footer-credit">app creada per @bmarquil a github</footer>
+
+    <script>
+        /* ==========================================================================
+           1. BANC DE PARAULES ORTOGRÀFIQUES (CATALÀ)
+           Format: { before, after, answer, options: [op1, op2], hint, topic }
+           ========================================================================== */
+        const WORD_BANK = [
+            // --- BLOC R / RR ---
+            { before: "ca", after: "o", answer: "rr", options: ["r", "rr"], hint: "Vehicle amb rodes", topic: "r_rr" },
+            { before: "ca", after: "a", answer: "r", options: ["r", "rr"], hint: "Part davantera del cap", topic: "r_rr" },
+            { before: "pe", after: "a", answer: "r", options: ["r", "rr"], hint: "Fruita dolça", topic: "r_rr" },
+            { before: "te", after: "a", answer: "rr", options: ["r", "rr"], hint: "El nostre planeta", topic: "r_rr" },
+            { before: "go", after: "a", answer: "rr", options: ["r", "rr"], hint: "Barret amb visera", topic: "r_rr" },
+            { before: "to", after: "e", answer: "rr", options: ["r", "rr"], hint: "Edifici molt alt", topic: "r_rr" },
+            { before: "ma", after: "i", answer: "r", options: ["r", "rr"], hint: "Els mariners hi naveguen", topic: "r_rr" },
+            { before: "so", after: "oll", answer: "r", options: ["r", "rr"], hint: "Entre vocals sona fort? No, és una excepció o paraula composta: soroll", topic: "r_rr" },
+            { before: "ar", after: "el", answer: "r", options: ["r", "rr"], hint: "Després de consonant va una sola r", topic: "r_rr" },
+            { before: "en", after: "edar", answer: "r", options: ["r", "rr"], hint: "Després de N sempre una r", topic: "r_rr" },
+            { before: "som", after: "iure", answer: "r", options: ["r", "rr"], hint: "Després de M sempre una r", topic: "r_rr" },
+            { before: "is", after: "ael", answer: "r", options: ["r", "rr"], hint: "Després de S sempre una r", topic: "r_rr" },
+            { before: "a", after: "òs", answer: "rr", options: ["r", "rr"], hint: "Cereal blanc molt típic", topic: "r_rr" },
+            { before: "se", after: "a", answer: "rr", options: ["r", "rr"], hint: "Eina per tallar fusta", topic: "r_rr" },
+            { before: "co", after: "er", answer: "rr", options: ["r", "rr"], hint: "Anar molt ràpid a peu", topic: "r_rr" },
+            { before: "ho", after: "a", answer: "r", options: ["r", "rr"], hint: "Seixanta minuts", topic: "r_rr" },
+            { before: "ma", after: "ró", answer: "r", options: ["r", "rr"], hint: "Color de la xocolata", topic: "r_rr" },
+            { before: "gui", after: "a", answer: "rr", options: ["r", "rr"], hint: "Instrument musical de corda", topic: "r_rr" },
+            { before: "ciga", after: "a", answer: "rr", options: ["r", "rr"], hint: "Insecte que canta a l'estiu", topic: "r_rr" },
+            { before: "pa", after: "aula", answer: "r", options: ["r", "rr"], hint: "Conjunt de lletres amb sentit", topic: "r_rr" },
+
+            // --- BLOC B / V ---
+            { before: "ca", after: "all", answer: "v", options: ["b", "v"], hint: "Animal que galopa", topic: "b_v" },
+            { before: "ha", after: "ia", answer: "v", options: ["b", "v"], hint: "Del verb haver (imperfet)", topic: "b_v" },
+            { before: "canta", after: "a", answer: "v", options: ["b", "v"], hint: "Acabament -ava sempre amb V", topic: "b_v" },
+            { before: "a", after: "i", answer: "v", options: ["b", "v"], hint: "El pare del pare", topic: "b_v" },
+            { before: "nú", after: "ol", answer: "v", options: ["b", "v"], hint: "Està al cel i porta pluja", topic: "b_v" },
+            { before: "am", after: "ulant", answer: "b", options: ["b", "v"], hint: "Davant de L sempre B", topic: "b_v" },
+            { before: "can", after: "i", answer: "v", options: ["b", "v"], hint: "Després de N sempre V", topic: "b_v" },
+            { before: "em", after: "olic", answer: "b", options: ["b", "v"], hint: "Després de M sempre B", topic: "b_v" },
+            { before: "po", after: "le", answer: "b", options: ["b", "v"], hint: "Davant de L sempre B", topic: "b_v" },
+            { before: "lli", after: "re", answer: "b", options: ["b", "v"], hint: "Davant de R sempre B", topic: "b_v" },
+            { before: "hi", after: "ern", answer: "v", options: ["b", "v"], hint: "Estació més freda de l'any", topic: "b_v" },
+            { before: "estiu", after: "a", answer: "v", options: ["b", "v"], hint: "Passar l'estiu fora", topic: "b_v" },
+            { before: "escri", after: "ia", answer: "v", options: ["b", "v"], hint: "Del verb escriure", topic: "b_v" },
+            { before: "mo", after: "iment", answer: "v", options: ["b", "v"], hint: "De moure -> moviment", topic: "b_v" },
+            { before: "llo", after: "a", answer: "b", options: ["b", "v"], hint: "Femella del llop", topic: "b_v" },
+            { before: "blan", after: "a", answer: "c", options: ["b", "v"], hint: "Oposat a negre (corregit: veure sota)", topic: "skip" },
+            { before: "sa", after: "ó", answer: "b", options: ["b", "v"], hint: "Per rentar-se les mans", topic: "b_v" },
+            { before: "a", after: "ella", answer: "b", options: ["b", "v"], hint: "Insecte que fa mel", topic: "b_v" },
+            { before: "o", after: "ella", answer: "v", options: ["b", "v"], hint: "Animal que fa beee", topic: "b_v" },
+            { before: "ta", after: "ula", answer: "b", options: ["b", "v"], hint: "Moble per menjar o estudiar", topic: "b_v" },
+            { before: "neu", after: "a", answer: "v", options: ["b", "v"], hint: "Cau neu del cel", topic: "b_v" },
+
+            // --- BLOC C / QU ---
+            { before: "for", after: "illa", answer: "qu", options: ["c", "qu"], hint: "Eina per punxar el menjar", topic: "c_qu" },
+            { before: "", after: "asa", answer: "c", options: ["c", "qu"], hint: "Lloc on vivim (davant A)", topic: "c_qu" },
+            { before: "for", after: "a", answer: "c", options: ["c", "qu"], hint: "Eina per cavar la terra", topic: "c_qu" },
+            { before: "mos", after: "it", answer: "qu", options: ["c", "qu"], hint: "Insecte que pica (davant I)", topic: "c_qu" },
+            { before: "pa", after: "et", answer: "qu", options: ["c", "qu"], hint: "Caixa embolicada (davant E)", topic: "c_qu" },
+            { before: "es", after: "ola", answer: "c", options: ["c", "qu"], hint: "Lloc on anem a aprendre", topic: "c_qu" },
+            { before: "ri", after: "a", answer: "c", options: ["c", "qu"], hint: "Amb molts diners (femení)", topic: "c_qu" },
+            { before: "ri", after: "esa", answer: "qu", options: ["c", "qu"], hint: "Abundància de diners (davant E)", topic: "c_qu" },
+            { before: "va", after: "a", answer: "c", options: ["c", "qu"], hint: "Animal que dona llet", topic: "c_qu" },
+            { before: "va", after: "es", answer: "qu", options: ["c", "qu"], hint: "Plural de vaca (davant E)", topic: "c_qu" },
+            { before: "for", after: "es", answer: "qu", options: ["c", "qu"], hint: "Plural de forca (davant E)", topic: "c_qu" },
+            { before: "bos", after: "os", answer: "c", options: ["c", "qu"], hint: "Plural de bosc (davant O)", topic: "c_qu" },
+            { before: "bo", after: "a", answer: "c", options: ["c", "qu"], hint: "Part de la cara per menjar", topic: "c_qu" },
+            { before: "bo", after: "eta", answer: "qu", options: ["c", "qu"], hint: "Boca petita (davant E)", topic: "c_qu" },
+            { before: "mà", after: "ina", answer: "qu", options: ["c", "qu"], hint: "Aparell mecànic (davant I)", topic: "c_qu" },
+            { before: "sà", after: "a", answer: "c", options: ["c", "qu"], hint: "Bossa gran de tela", topic: "c_qu" },
+            { before: "sa", after: "et", answer: "qu", options: ["c", "qu"], hint: "Sac petit (davant E)", topic: "c_qu" },
+            { before: "es", after: "i", answer: "qu", options: ["c", "qu"], hint: "Esport de neu (davant I)", topic: "c_qu" },
+            { before: "cu", after: "a", answer: "c", options: ["c", "qu"], hint: "Cuc petit o cuca", topic: "c_qu" },
+            { before: "cu", after: "eta", answer: "qu", options: ["c", "qu"], hint: "Cuca molt petita (davant E)", topic: "c_qu" }
+        ].filter(item => item.topic !== "skip");
+
+        /* ==========================================================================
+           2. SINTETITZADOR D'ÀUDIO (WEB AUDIO API - SENSE FITXERS EXTERNS)
+           ========================================================================== */
+        class SoundEffects {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playClick() {
+                if (this.muted) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(520, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.06);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.06);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.06);
+            }
+
+            playCorrect() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                [523.25, 659.25, 783.99].forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.06);
+                    gain.gain.setValueAtTime(0.2, now + i * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.06 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.06);
+                    osc.stop(now + i * 0.06 + 0.25);
+                });
+            }
+
+            playWrong() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(120, now + 0.25);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+
+            playVictory() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.1);
+                    gain.gain.setValueAtTime(0.25, now + i * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.4);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.1);
+                    osc.stop(now + i * 0.1 + 0.4);
+                });
+            }
+        }
+
+        const sfx = new SoundEffects();
+
+        /* ==========================================================================
+           3. ESTAT DE L'APLICACIÓ I LÒGICA DEL JOC
+           ========================================================================== */
+        const state = {
+            topic: 'r_rr',
+            wordCount: 10,
+            startTime: 0,
+            timerInterval: null,
+            players: {
+                1: { words: [], currentIndex: 0, score: 0, hits: 0, finished: false, locked: false, elapsedMs: 0 },
+                2: { words: [], currentIndex: 0, score: 0, hits: 0, finished: false, locked: false, elapsedMs: 0 }
+            }
+        };
+
+        // Formatar mil·lisegons a MM:SS.d
+        function formatTime(ms) {
+            const totalTenths = Math.floor(ms / 100);
+            const tenths = totalTenths % 10;
+            const totalSeconds = Math.floor(totalTenths / 10);
+            const seconds = totalSeconds % 60;
+            const minutes = Math.floor(totalSeconds / 60);
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${tenths}`;
+        }
+
+        function startTimers() {
+            stopTimers();
+            state.startTime = performance.now();
+            state.timerInterval = setInterval(() => {
+                const now = performance.now();
+                [1, 2].forEach(pId => {
+                    const p = state.players[pId];
+                    if (!p.finished) {
+                        p.elapsedMs = now - state.startTime;
+                        document.getElementById(`p${pId}-timer`).textContent = formatTime(p.elapsedMs);
+                    }
+                });
+            }, 100);
+        }
+
+        function stopTimers() {
+            if (state.timerInterval) {
+                clearInterval(state.timerInterval);
+                state.timerInterval = null;
+            }
+        }
+        // Actualitzar l'alçada del coet segons els encerts nets (no baixa de 0%)
+        function updateRocketProgress(pId, netProgress, animate = false) {
+            const clampedProgress = Math.max(0, Math.min(state.wordCount, netProgress));
+            const pct = Math.round((clampedProgress / state.wordCount) * 100);
+            const fillEl = document.getElementById(`p${pId}-rocket-fill`);
+            const shipEl = document.getElementById(`p${pId}-rocket-ship`);
+
+            fillEl.style.height = `${pct}%`;
+            shipEl.style.bottom = `${pct}%`;
+
+            if (animate) {
+                shipEl.classList.remove('launching');
+                void shipEl.offsetWidth; // Reinicia l'animació CSS
+                shipEl.classList.add('launching');
+            }
+        }
+
+        // Referències DOM
+        const screens = {
+            setup: document.getElementById('setup-screen'),
+            game: document.getElementById('game-screen'),
+            results: document.getElementById('results-screen')
+        };
+
+        const btnHome = document.getElementById('btn-home');
+        const btnSound = document.getElementById('btn-sound');
+        const btnFullscreen = document.getElementById('btn-fullscreen');
+
+        // Utilitat per barrejar arrays (Fisher-Yates)
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Canvi de pantalla
+        function showScreen(screenName) {
+            Object.values(screens).forEach(el => el.classList.add('hidden'));
+            screens[screenName].classList.remove('hidden');
+
+            if (screenName === 'setup') {
+                btnHome.classList.add('hidden');
+            } else {
+                btnHome.classList.remove('hidden');
+            }
+        }
+
+        // Configuració inicial: Botons de temàtica
+        document.querySelectorAll('#topic-options .select-pill').forEach(btn => {
+            btn.addEventListener('click', () => {
+                sfx.playClick();
+                document.querySelectorAll('#topic-options .select-pill').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.topic = btn.dataset.topic;
+            });
+        });
+
+        // Configuració inicial: Botons de nombre de paraules
+        document.querySelectorAll('#count-options .select-pill').forEach(btn => {
+            btn.addEventListener('click', () => {
+                sfx.playClick();
+                document.querySelectorAll('#count-options .select-pill').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.wordCount = parseInt(btn.dataset.count, 10);
+            });
+        });
+
+        // Preparar la partida
+        function startGame() {
+            sfx.playClick();
+
+            // Filtrar paraules segons temàtica
+            let pool = state.topic === 'totes' 
+                ? [...WORD_BANK] 
+                : WORD_BANK.filter(w => w.topic === state.topic);
+
+            // Inicialitzar cada jugador amb una baralla barrejada que s'anirà reomplint si hi ha errors
+            [1, 2].forEach(pId => {
+                state.players[pId] = {
+                    pool: pool,
+                    words: shuffle(pool),
+                    currentIndex: 0,
+                    score: 0,
+                    hits: 0,
+                    rocketLevel: 0,
+                    finished: false,
+                    locked: false,
+                    elapsedMs: 0
+                };
+                document.getElementById(`p${pId}-timer`).textContent = '00:00.0';
+                document.getElementById(`p${pId}-waiting`).classList.add('hidden');
+                updateRocketProgress(pId, 0, false);
+                renderPlayerTurn(pId);
+            });
+
+            startTimers();
+            showScreen('game');
+        }
+
+        // Renderitzar la paraula actual d'un jugador
+        function renderPlayerTurn(pId) {
+            const p = state.players[pId];
+            
+            // Si s'acaba la baralla actual perquè el jugador ha fallat diverses vegades, la tornem a barrejar
+            if (p.currentIndex >= p.words.length) {
+                p.words = p.words.concat(shuffle(p.pool));
+            }
+            const wordObj = p.words[p.currentIndex];
+
+            // Mostrem el progrés actual del coet respecte a l'objectiu d'encerts del nivell
+            document.getElementById(`p${pId}-progress`).textContent = `${p.rocketLevel} / ${state.wordCount}`;
+            document.getElementById(`p${pId}-score`).textContent = `${p.score} pts`;
+
+            const wordEl = document.getElementById(`p${pId}-word`);
+            wordEl.innerHTML = `${wordObj.before}<span class="blank-slot">?</span>${wordObj.after}`;
+            
+            document.getElementById(`p${pId}-hint`).textContent = wordObj.hint;
+
+            // Assignar opcions als 2 botons del jugador
+            const choiceBtns = document.querySelectorAll(`#p${pId}-choices .choice-btn`);
+            choiceBtns.forEach((btn, idx) => {
+                btn.textContent = wordObj.options[idx];
+                btn.disabled = false;
+            });
+
+            const stage = document.getElementById(`p${pId}-stage`);
+            stage.classList.remove('flash-correct', 'flash-wrong');
+            p.locked = false;
+        }
+
+        // Gestionar resposta d'un jugador
+        function handleAnswer(pId, choiceIdx) {
+            const p = state.players[pId];
+            if (p.finished || p.locked) return;
+
+            p.locked = true;
+            const wordObj = p.words[p.currentIndex];
+            const selectedOption = wordObj.options[choiceIdx];
+            const isCorrect = selectedOption === wordObj.answer;
+
+            const stage = document.getElementById(`p${pId}-stage`);
+            const wordEl = document.getElementById(`p${pId}-word`);
+            const choiceBtns = document.querySelectorAll(`#p${pId}-choices .choice-btn`);
+            choiceBtns.forEach(b => b.disabled = true);
+
+            // Mostrar la lletra triada dins del buit
+            wordEl.innerHTML = `${wordObj.before}<span class="blank-slot">${selectedOption}</span>${wordObj.after}`;
+
+            if (isCorrect) {
+                sfx.playCorrect();
+                p.score += 10;
+                p.hits += 1;
+                p.rocketLevel = Math.min(state.wordCount, p.rocketLevel + 1);
+                stage.classList.add('flash-correct');
+            } else {
+                sfx.playWrong();
+                p.score = Math.max(0, p.score - 5);
+                p.rocketLevel = Math.max(0, p.rocketLevel - 1);
+                // Mostrem la solució correcta després d'un breu instant per reforçar l'aprenentatge
+                stage.classList.add('flash-wrong');
+                setTimeout(() => {
+                    wordEl.innerHTML = `${wordObj.before}<span class="blank-slot" style="color:#16a34a; border-color:#16a34a;">${wordObj.answer}</span>${wordObj.after}`;
+                }, 400);
+            }
+
+            document.getElementById(`p${pId}-score`).textContent = `${p.score} pts`;
+            document.getElementById(`p${pId}-progress`).textContent = `${p.rocketLevel} / ${state.wordCount}`;
+
+            // Actualitzem la posició del coet (puja si encerta, baixa si falla)
+            updateRocketProgress(pId, p.rocketLevel, true);
+
+            // El jugador acaba només quan el coet arriba al màxim (objectiu d'encerts del nivell)
+            const delay = isCorrect ? 650 : 1200;
+            setTimeout(() => {
+                if (p.rocketLevel >= state.wordCount) {
+                    finishPlayer(pId);
+                } else {
+                    p.currentIndex++;
+                    renderPlayerTurn(pId);
+                }
+            }, delay);
+        }
+
+        // Quan un jugador completa totes les seves paraules
+        function finishPlayer(pId) {
+            const p = state.players[pId];
+            if (p.finished) return;
+            p.finished = true;
+            p.elapsedMs = performance.now() - state.startTime;
+            const formattedTime = formatTime(p.elapsedMs);
+            document.getElementById(`p${pId}-timer`).textContent = formattedTime;
+
+            document.getElementById(`p${pId}-wait-score`).textContent = `Objectiu completat! (${p.score} pts)`;
+            document.getElementById(`p${pId}-wait-time`).textContent = `Temps: ${formattedTime}`;
+            document.getElementById(`p${pId}-waiting`).classList.remove('hidden');
+
+            // Si tots dos han acabat, passem a resultats
+            if (state.players[1].finished && state.players[2].finished) {
+                stopTimers();
+                setTimeout(showResults, 700);
+            }
+        }
+
+        // Mostrar pantalla final amb podi
+        function showResults() {
+            sfx.playVictory();
+            const p1 = state.players[1];
+            const p2 = state.players[2];
+
+            document.getElementById('final-p1-score').textContent = `${p1.score} pts`;
+            document.getElementById('final-p1-detail').textContent = `${p1.hits} encerts totals`;
+            document.getElementById('final-p1-time').textContent = `⏱️ Temps: ${formatTime(p1.elapsedMs)}`;
+
+            document.getElementById('final-p2-score').textContent = `${p2.score} pts`;
+            document.getElementById('final-p2-detail').textContent = `${p2.hits} encerts totals`;
+            document.getElementById('final-p2-time').textContent = `⏱️ Temps: ${formatTime(p2.elapsedMs)}`;
+
+            const winnerBanner = document.getElementById('winner-text');
+            if (p1.elapsedMs < p2.elapsedMs) {
+                winnerBanner.textContent = "Guanya el Jugador 1! 🚀";
+                winnerBanner.style.borderColor = "var(--p1-primary)";
+                winnerBanner.style.backgroundColor = "var(--p1-light)";
+            } else if (p2.elapsedMs < p1.elapsedMs) {
+                winnerBanner.textContent = "Guanya el Jugador 2! 🚀";
+                winnerBanner.style.borderColor = "var(--p2-primary)";
+                winnerBanner.style.backgroundColor = "var(--p2-light)";
+            } else if (p1.score > p2.score) {
+                winnerBanner.textContent = "Guanya el Jugador 1!";
+                winnerBanner.style.borderColor = "var(--p1-primary)";
+                winnerBanner.style.backgroundColor = "var(--p1-light)";
+            } else if (p2.score > p1.score) {
+                winnerBanner.textContent = "Guanya el Jugador 2!";
+                winnerBanner.style.borderColor = "var(--p2-primary)";
+                winnerBanner.style.backgroundColor = "var(--p2-light)";
+            } else {
+                winnerBanner.textContent = "Empat absolut! Gran partida!";
+                winnerBanner.style.borderColor = "var(--accent)";
+                winnerBanner.style.backgroundColor = "#fef3c7";
+            }
+
+            showScreen('results');
+        }
+
+        /* ==========================================================================
+           4. ESDEVENIMENTS D'INTERACCIÓ I CONTROLS GLOBALS
+           ========================================================================== */
+        document.getElementById('btn-start').addEventListener('click', startGame);
+        document.getElementById('btn-play-again').addEventListener('click', startGame);
+
+        // Botons de resposta dels jugadors
+        document.querySelectorAll('.choice-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const pId = parseInt(btn.dataset.player, 10);
+                const idx = parseInt(btn.dataset.idx, 10);
+                handleAnswer(pId, idx);
+            });
+        });
+
+        // Botó Tornar a l'inici (Configuració)
+        btnHome.addEventListener('click', () => {
+            sfx.playClick();
+            stopTimers();
+            showScreen('setup');
+        });
+
+        // Botó Silenciar / Activar So
+        btnSound.addEventListener('click', () => {
+            sfx.muted = !sfx.muted;
+            document.getElementById('icon-sound-on').classList.toggle('hidden', sfx.muted);
+            document.getElementById('icon-sound-off').classList.toggle('hidden', !sfx.muted);
+            if (!sfx.muted) sfx.playClick();
+        });
+
+        // Botó Pantalla Completa (Fullscreen API)
+        btnFullscreen.addEventListener('click', () => {
+            sfx.playClick();
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+        });
+    </script>
+</body>
+</html>
